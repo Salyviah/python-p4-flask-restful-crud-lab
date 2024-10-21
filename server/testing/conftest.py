@@ -1,9 +1,18 @@
-#!/usr/bin/env python3
+# server/testing/conftest.py
+import pytest
+from app import app, db, Plant
 
-def pytest_itemcollected(item):
-    par = item.parent.obj
-    node = item.obj
-    pref = par.__doc__.strip() if par.__doc__ else par.__class__.__name__
-    suf = node.__doc__.strip() if node.__doc__ else node.__name__
-    if pref or suf:
-        item._nodeid = ' '.join((pref, suf))
+@pytest.fixture
+def client():
+    app.config['TESTING'] = True
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+    with app.app_context():
+        db.create_all()  # Create database tables
+        # Add a test plant
+        plant = Plant(name='Live Oak', image='http://example.com/oak.jpg', price=250.0)
+        db.session.add(plant)
+        db.session.commit()  # Commit the test plant
+        yield app.test_client()
+        db.drop_all()  # Cleanup after tests
+
+
